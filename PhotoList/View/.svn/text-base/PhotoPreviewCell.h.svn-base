@@ -1,0 +1,19 @@
+//
+//  PhotoPreviewCell.h
+//  RA Image
+//
+//  Created by Jack on 2017/6/14.
+//  Copyright © 2017年 USAI. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface PhotoPreviewCell : UICollectionViewCell
+
+@property (strong, nonatomic) IBOutlet UIScrollView *scrollView;
+@property (strong, nonatomic) IBOutlet UIView *scrollContentView;
+@property (nonatomic,strong) IBOutlet UIImageView *photoView;
+
+- (void)setPhoto:(UIImage *)image;
+
+@end

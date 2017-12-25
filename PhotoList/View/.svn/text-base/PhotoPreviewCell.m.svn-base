@@ -1,0 +1,39 @@
+//
+//  PhotoPreviewCell.m
+//  RA Image
+//
+//  Created by Jack on 2017/6/14.
+//  Copyright © 2017年 USAI. All rights reserved.
+//
+
+#import "PhotoPreviewCell.h"
+
+@implementation PhotoPreviewCell
+
+- (void)setPhoto:(UIImage *)image {
+    if (self.photoView) {
+        
+//        CGFloat width = self.bounds.size.width;
+//        CGFloat height = self.bounds.size.height;
+//        
+//        CGFloat w = image.size.width;
+//        CGFloat h = image.size.height;
+//        // 根据图片大小和ScrollView大小等比缩放，使ScrollView容得下图片
+//        float factor = width / w;
+//        w = w * factor;
+//        h = h * factor;
+//        CGRect frame = CGRectMake(0, (height - h) * 0.5, w, h);
+//
+//        self.photoView.frame = frame;
+        
+        self.photoView.image = image;
+    }
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    
+}
+
+
+@end

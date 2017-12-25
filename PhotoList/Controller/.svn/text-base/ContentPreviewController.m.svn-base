@@ -1,0 +1,414 @@
+//
+//  NewPhotoPreviewController.m
+//  RA Image
+//
+//  Created by Jack on 2017/6/14.
+//  Copyright © 2017年 USAI. All rights reserved.
+//
+
+#import "ContentPreviewController.h"
+#import "PhotoPreviewCell.h"
+#import "VideoPreviewCell.h"
+
+#import "iSalesDB.h"
+#import "AppDelegate.h"
+
+
+@interface ContentPreviewController ()<UICollectionViewDelegate,UICollectionViewDataSource,UICollectionViewDelegateFlowLayout>
+
+@property (nonatomic,assign) NSUInteger currentIndex;
+@property (strong, nonatomic) IBOutlet UILabel *indicator;
+@property (strong, nonatomic) IBOutlet UICollectionView *previewContainer;
+
+@property (nonatomic,strong) NSArray *photos;
+
+@property (nonatomic,strong) UIView *mask;
+
+@property (nonatomic,assign) BOOL hideNavigationBar;
+
+@end
+
+@implementation ContentPreviewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+//    self.automaticallyAdjustsScrollViewInsets = NO;
+//    self.navigationController.navigationBar.translucent = NO;
+//    self.edgesForExtendedLayout = UIRectEdgeNone;
+
+    UIView *v = [UIView new];
+    [self.view insertSubview:v atIndex:0];
+    
+    NSMutableArray *tmpArr = [NSMutableArray array];
+    int count = [[self.content objectForKey:@"count"] intValue];
+    for (int i = 0; i < count; i++) {
+        NSDictionary *item = [self.content objectForKey:[NSString stringWithFormat:@"item_%d",i]];
+        [tmpArr addObject:item];
+    }
+    self.photos = [tmpArr copy];
+    
+    self.indicator.layer.cornerRadius = 20;
+    self.indicator.layer.masksToBounds = YES;
+    
+    self.previewContainer.pagingEnabled = YES;
+    NSString *offset = [NSString stringWithFormat:@"%lu / %lu",(unsigned long)self.currentIndex + 1,(unsigned long)self.photos.count];
+    self.indicator.text = offset;
+   
+    
+    
+    self.hideNavigationBar = self.navigationController.isNavigationBarHidden;
+    
+    self.navigationController.navigationBarHidden = YES;
+    
+    // 掩藏滚动
+    [self.view insertSubview:self.mask belowSubview:self.indicator];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+}
+
+- (void)viewDidLayoutSubviews {
+    [super viewDidLayoutSubviews];
+
+    
+//    if (self.currentIndex > 0) {
+//        [self.previewContainer scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:self.currentIndex inSection:0] atScrollPosition:16 animated:YES];
+//    }
+    
+//    [self scrollToIndex:self.currentIndex + 1];
+   [self.previewContainer setContentOffset:CGPointMake((self.currentIndex + 1) * CGRectGetWidth(self.previewContainer.frame), 0) animated:YES];
+
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    
+//    [self.previewContainer scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:self.currentIndex inSection:0] atScrollPosition:16 animated:YES];
+    
+    __weak typeof(self) weakself = self;
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        sleep(0.25);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [weakself.mask removeFromSuperview];
+            weakself.mask = nil;
+        });
+
+    });
+}
+
+- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
+    
+    // 重新布局 Item 大小
+    [self.previewContainer.collectionViewLayout invalidateLayout];
+
+    // 重新布局Item位置
+//    [self.previewContainer scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:self.currentIndex inSection:0] atScrollPosition:32 animated:NO];
+//    [self scrollToIndex:self.currentIndex + 1];
+}
+
+- (BOOL)prefersStatusBarHidden {
+    return YES;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (UIView *)mask {
+    if (!_mask) {
+        _mask = [[UIView alloc] initWithFrame:self.view.bounds];
+        _mask.backgroundColor = [UIColor blackColor];
+    }
+    return _mask;
+}
+
+
+#pragma mark - Setter
+
+- (void)setOffset:(NSUInteger)offset {
+    [self setCurrentIndex:offset];
+}
+
+//- (void)setCurrentIndex:(NSUInteger)currentIndex {
+//    _currentIndex = currentIndex;
+//    NSString *offset = [NSString stringWithFormat:@"%lu / %lu",(unsigned long)self.currentIndex + 1,(unsigned long)self.photos.count];
+//    self.indicator.text = offset;
+//}
+
+#pragma mark - FlowLayout Delegate
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
+    return collectionView.bounds.size;
+}
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
+    return 0;
+}
+
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout minimumInteritemSpacingForSectionAtIndex:(NSInteger)section {
+    return 0;
+}
+
+- (UIEdgeInsets)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout insetForSectionAtIndex:(NSInteger)section {
+    return UIEdgeInsetsZero;
+}
+
+#pragma mark - CollectionView Delegate
+
+- (void)collectionView:(UICollectionView *)collectionView willDisplayCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+
+    
+    
+    NSUInteger idx = [self contentOffsetForIndexPath:indexPath];
+    NSDictionary *item = [self.photos objectAtIndex:idx];
+    NSString *type = [item objectForKey:@"type"];
+    
+    if ([type isEqualToString:@"image"]) {
+        PhotoPreviewCell *preCell = (PhotoPreviewCell *)cell;
+        
+        [self photoCell:preCell loadImage:item];
+        
+
+        
+    } else if ([type isEqualToString:@"video"]) {
+        
+        VideoPreviewCell *videoCell = (VideoPreviewCell *)cell;
+        videoCell.item = item;
+
+        
+    }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didEndDisplayingCell:(UICollectionViewCell *)cell forItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    NSUInteger idx = [self contentOffsetForIndexPath:indexPath];
+    NSDictionary *item = [self.photos objectAtIndex:idx];
+    NSString *type = [item objectForKey:@"type"];
+    
+    if ([type isEqualToString:@"image"]) {
+        PhotoPreviewCell *preCell = (PhotoPreviewCell *)cell;
+        UIScrollView *sc = preCell.scrollView;
+        sc.zoomScale = 1;
+        sc.contentSize = CGSizeZero;
+        sc.contentOffset = CGPointZero;
+    } else if ([type isEqualToString:@"video"]) {
+        
+        VideoPreviewCell *videoCell = (VideoPreviewCell *)cell;
+
+        [videoCell reset];
+    }
+}
+
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    NSUInteger idx = [self contentOffsetForIndexPath:indexPath];
+    NSDictionary *item = [self.photos objectAtIndex:idx];
+    NSString *type = [item objectForKey:@"type"];
+    
+    if ([type isEqualToString:@"video"]) {
+        
+        VideoPreviewCell *videoCell = (VideoPreviewCell *)[collectionView cellForItemAtIndexPath:indexPath];
+        
+        [videoCell play];
+    }
+}
+
+
+#pragma mark - CollectionView DataSource
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    return self.photos.count + 2;
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    
+    NSUInteger idx = [self contentOffsetForIndexPath:indexPath];
+    
+    NSDictionary *item = [self.photos objectAtIndex:idx];
+    NSString *type = [item objectForKey:@"type"];
+    
+    if ([type isEqualToString:@"image"]) {
+        
+        PhotoPreviewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:@"PhotoPreviewCell" forIndexPath:indexPath];
+        cell.scrollView.delegate = self;
+        return cell;
+        
+    } else if ([type isEqualToString:@"video"]) {
+        
+        VideoPreviewCell *videoCell = [collectionView dequeueReusableCellWithReuseIdentifier:@"VideoPreviewCell" forIndexPath:indexPath];
+
+        return videoCell;
+    }
+    
+    return nil;
+}
+
+#pragma mark - ScrollView Delegate
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+//    if (scrollView == self.previewContainer) {
+//
+//        CGFloat x = scrollView.contentOffset.x / scrollView.frame.size.width;
+//        int idx = (int)x;
+//        if (idx == x) {
+//            if (self.currentIndex != idx) {
+//                self.currentIndex = idx;
+//                
+//            }
+//        }
+//    }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    CGFloat offsetX = scrollView.contentOffset.x;
+    float idxf = offsetX / CGRectGetWidth(scrollView.frame);
+    int idxi = (int)(offsetX / CGRectGetWidth(scrollView.frame));
+    
+    if (idxf == idxi) {
+        if (idxi == 0) {
+            self.currentIndex = self.photos.count - 1;
+        } else if (idxi == self.photos.count + 1) {
+            self.currentIndex = 0;
+        } else {
+            self.currentIndex = idxi - 1;
+        }
+        
+//        if (self.indicator) {
+//            self.indicator(self.currentIndex, self.photos.count);
+//        }
+        [self updateIndicator];
+    } else {
+//        idxi = ceil(idxf);
+//        if (idxi != 0 || idxi != self.photos.count + 1) {
+//            [self scrollToIndex:idxi];
+//        }
+    }
+    
+    if (idxi == 0) {
+        [self scrollToIndex:self.photos.count];
+    }
+    
+    if (idxi == self.photos.count + 1) {
+        [self scrollToIndex:1];
+    }
+    
+}
+
+- (UIView *)viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    if (scrollView != self.previewContainer) {
+        return scrollView.subviews.firstObject;
+    }
+    return nil;
+}
+
+- (void)scrollViewDidZoom:(UIScrollView *)scrollView {
+    
+    if (self.previewContainer != scrollView) {
+        
+
+    }
+}
+
+#pragma mark - Private
+
+- (void)updateIndicator {
+    NSString *offset = [NSString stringWithFormat:@"%lu / %lu",(unsigned long)self.currentIndex + 1,(unsigned long)self.photos.count];
+    self.indicator.text = offset;
+}
+
+- (NSUInteger)contentOffsetForIndexPath:(NSIndexPath *)indexPath {
+    NSUInteger idx = indexPath.row;
+    if (idx == 0) {
+        idx = self.photos.count - 1;
+    }else if (idx == self.photos.count + 1) {
+        idx = 0;
+    } else {
+        idx = idx - 1;
+    }
+    return idx;
+}
+
+- (void)scrollToIndex:(NSUInteger)index { // 不会出现肉眼可见的滚动效果
+    self.previewContainer.contentOffset = CGPointMake(index * CGRectGetWidth(self.previewContainer.frame), 0);
+}
+
+- (void) photoCell:(PhotoPreviewCell *)cell loadImage:(NSDictionary *)item_json {
+    
+    AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    NSString* img_url = [item_json valueForKey:@"s"];
+    NSString* type = item_json[@"type"];
+    
+    NSString* file_name=[img_url lastPathComponent];
+    NSData* img_data=nil;
+    
+    //  加载Image
+    if([type isEqualToString:@"video"])
+    {
+        img_data = UIImagePNGRepresentation([UIImage imageNamed:@"play"]);
+    }
+    else
+    {
+        if([item_json[@"is_localfile"] boolValue])
+            img_data = [NSData dataWithContentsOfFile:img_url];
+        else
+            img_data = [iSalesDB load_cached_img:file_name loadFrom:img_url];
+    }
+    
+    // 设置Image
+    if(img_data!=nil)
+    {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIImage * img =[UIImage imageWithData:img_data];
+            
+            [cell setPhoto:img];
+            
+        });
+    }
+    else
+    {
+        NSData*  downloadimg_data = nil;
+        if (!appDelegate.offline_mode) {
+            downloadimg_data = [NSData dataWithContentsOfURL:[NSURL URLWithString:img_url]];
+        }
+        dispatch_async(dispatch_get_main_queue(), ^{
+            
+            
+            
+            if(downloadimg_data!=nil)
+            {
+                
+                [iSalesDB cache_img:downloadimg_data filename:file_name saveTo:img_url];
+                
+                UIImage * img =[UIImage imageWithData:downloadimg_data];
+                [cell setPhoto:img];
+
+                
+            }
+            else
+            {
+                
+                
+                UIImage * img =[UIImage imageNamed:@"notfound_l"];
+                [cell setPhoto:img];
+
+                
+            }
+            
+        });
+    }
+    
+}
+
+- (IBAction)closeBtnClick:(UIButton *)sender {
+    
+    self.navigationController.navigationBarHidden = self.hideNavigationBar;
+    [self.navigationController popViewControllerAnimated:YES];
+    
+}
+
+
+@end

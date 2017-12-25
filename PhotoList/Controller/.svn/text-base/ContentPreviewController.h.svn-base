@@ -1,0 +1,17 @@
+//
+//  NewPhotoPreviewController.h
+//  RA Image
+//
+//  Created by Jack on 2017/6/14.
+//  Copyright © 2017年 USAI. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface ContentPreviewController : UIViewController
+
+@property (nonatomic,strong) NSDictionary *content;
+
+- (void)setOffset:(NSUInteger)offset;
+
+@end

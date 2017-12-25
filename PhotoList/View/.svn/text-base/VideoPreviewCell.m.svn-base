@@ -1,0 +1,62 @@
+//
+//  VideoPreviewCell.m
+//  iSales-NPD
+//
+//  Created by Jack on 2017/6/21.
+//  Copyright © 2017年 United Software Applications, Inc. All rights reserved.
+//
+
+#import "VideoPreviewCell.h"
+
+@interface VideoPreviewCell ()
+
+@property (nonatomic,assign) BOOL isPlay;
+
+@end
+
+@implementation VideoPreviewCell
+
+- (void)setItem:(NSDictionary *)item {
+    _item = item;
+
+}
+
+- (void)reset {
+
+    [self.playerView stopVideo];
+    self.item = nil;
+    self.isPlay = NO;
+    [self.contentView bringSubviewToFront:self.VideoImageView];
+    
+}
+
+- (void)play {
+    if (!self.isPlay) {
+        if (self.item) {
+            
+            [self.contentView bringSubviewToFront:self.playerView];
+            NSDictionary *item = self.item;
+            NSString* video_code=item[@"code"];
+            
+            NSString* video_id=[self.playerView Embed2VID:video_code];
+            
+            NSDictionary *playerVars = @{
+                                         @"playsinline" : @1,
+                                         @"autoplay" : @(1),
+                                         @"rel":@0,
+                                         @"showinfo": @0,
+                                         @"modestbranding":@0,
+                                         @"enablejsapi":@1
+                                         };
+            
+            [self.playerView loadWithVideoId:video_id playerVars:playerVars];
+            
+            self.playerView.webView.allowsPictureInPictureMediaPlayback=false;
+            
+            self.isPlay = YES;
+        }
+
+    }
+}
+
+@end

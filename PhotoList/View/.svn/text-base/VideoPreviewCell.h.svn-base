@@ -1,0 +1,22 @@
+//
+//  VideoPreviewCell.h
+//  iSales-NPD
+//
+//  Created by Jack on 2017/6/21.
+//  Copyright © 2017年 United Software Applications, Inc. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "YTPlayerView.h"
+
+@interface VideoPreviewCell : UICollectionViewCell
+
+@property (nonatomic,strong) NSDictionary *item;
+
+@property (strong, nonatomic) IBOutlet YTPlayerView *playerView;
+@property (strong, nonatomic) IBOutlet UIImageView *VideoImageView;
+
+- (void)reset;
+- (void)play;
+
+@end
